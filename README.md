@@ -1,110 +1,42 @@
-# Information Routing in Multi-Frequency Oscillatory Networks
+# Time-structured communication through cross-frequency bursts
 
 This repository contains C-based Hodgkin-Huxley network simulations and Python
-analysis pipelines for studying oscillatory regimes, MFOPs, transfer entropy,
-and spike transmission across single-population and connected-population
-networks.
+analysis pipelines for studying oscillatory regimes, multi-frequency oscillatory
+patterns (MFOPs), transfer entropy, and delayed spike transmission in
+single-population and coupled-population networks.
 
-## Repository Tree
+## Install
 
-```text
-.
-|-- README.md
-|-- pyproject.toml
-|-- include/
-|   |-- Makefile
-|   |-- model2.{c,h}
-|   |-- neuralnet.{c,h}
-|   |-- measurement2.{c,h}
-|   |-- storage.{c,h}
-|   |-- mpifor.{c,h}
-|   |-- rng.{c,h}
-|   |-- mt64.{c,h}
-|   |-- ntk.{c,h}
-|   `-- utils.{c,h}
-|-- lib/
-|   `-- libhhnet.a
-|-- simulations/
-|   |-- compile.sh
-|   |-- descript.md
-|   |-- main_single.c
-|   |-- main_single_2d.c
-|   |-- main_twopop.c
-|   |-- main_twopop_4d.c
-|   |-- main_monopop_4d.c
-|   |-- main_regime_samples.c
-|   |-- main_transmission.c
-|   |-- export_regime_params.py
-|   `-- export_transmission_params.py
-|-- analysis/
-|   |-- export_singlepop_summary.py
-|   |-- extract_burstprobs_singlepop.py
-|   |-- export_twopop_summary.py
-|   |-- run_kmeans_clustering.py
-|   |-- clustering_oscillation_features.ipynb
-|   |-- compute_coburst_probs.py
-|   |-- extract_burstprobs_twopop.py
-|   |-- determine_frequency_range.ipynb
-|   |-- identify_mfop.py
-|   |-- identify_mfop_transmission.py
-|   |-- convert_mua.py
-|   |-- compute_te.py
-|   |-- compute_kappa.py
-|   `-- compute_recv_response.py
-|-- src/pytools/
-|   |-- hhtools.py
-|   |-- hhsignal.py
-|   |-- hhsummary.py
-|   |-- hhclustering.py
-|   |-- hhfilter.py
-|   |-- hhinfo.py
-|   |-- tetools.py
-|   |-- oscdetector.py
-|   |-- power_utils.py
-|   |-- burst_tools.py
-|   |-- utils*.py
-|   `-- visu.py
-|-- figures/
-|   |-- main_figure1.py
-|   |-- main_figure2.py
-|   |-- main_figure3.py
-|   |-- main_figure4.py
-|   |-- main_figure5.py
-|   `-- outputs/
-|-- notebooks/
-|   |-- figure_01.ipynb
-|   `-- figure_02.ipynb
-`-- results/
-    |-- singlepop/
-    |-- monopop_output/
-    |-- twopop_output/
-    |-- twopop_regime_samples/
-    |-- clustering/
-    |-- mfop_results/
-    |-- spike_transmission/
-    `-- te/
+Install the local Python package in editable mode from the repository root:
+
+```bash
+> pip install -e .
 ```
-
-Generated binaries, object files, `__pycache__`, and large result artifacts are
-not expanded in the tree above.
 
 ## Build
 
-Compile a simulation source file with:
+Build the shared simulation library first:
 
-```sh
-sh simulations/compile.sh <simulation_name>
+```bash
+> cd include
+> make main
+```
+
+This creates `lib/libhhnet.a`. To compile an individual simulation program, run:
+
+```bash
+> sh simulations/compile.sh <simulation_name>
 ```
 
 Example:
 
-```sh
-sh simulations/compile.sh main_single
+```bash
+> sh simulations/compile.sh main_single # This will create simulations/main_single.out
 ```
 
-The script builds the shared C objects in `include/`, links against
+The compile script builds the required objects in `include/`, links against
 `lib/libhhnet.a`, and writes the executable to
-`simulations/<simulation_name>.out`.
+`simulations/<simulation_name>.out`. MPI-enabled simulations require `mpicc`.
 
 ## Simulation and Analysis Map
 
@@ -112,8 +44,9 @@ The script builds the shared C objects in `include/`, links against
 
 `simulations/main_single.c`
 
-- Simulates one hard-coded single population, either `pop_F` or `pop_S`.
-- Use this for fixed-parameter examples and activity inspection.
+- Simulates a single population, either `pop_F` or `pop_S`, with hard-coded
+  parameters.
+- Intended for fixed-parameter examples and activity inspection.
 
 `simulations/main_single_2d.c`
 
@@ -128,18 +61,17 @@ The script builds the shared C objects in `include/`, links against
 
 `simulations/main_twopop.c`
 
-- Simulates connected populations, typically `pop_F - pop_S`.
+- Simulates a pair of connected populations, typically `pop_F - pop_S`.
 - Uses hard-coded parameters.
 
 `simulations/main_twopop_4d.c`
 
-- Simulates connected populations while varying `alpha`, `beta`, `Echelon`,
-  and `omega`.
-- Check the parameter-grid size around `int max_len[]` in the source before
-  launching a sweep.
+- Simulates connected populations while varying `alpha`, `beta`, `rank` or
+  echelon-like ordering, and `omega`.
+- Check the parameter-grid size near `int max_len[]` before launching a sweep.
 - Related setup and analysis:
   - `simulations/export_regime_params.py`: exports simulation parameters and
-    should be run before the simulation sweep.
+    should be run before the sweep.
   - `analysis/export_twopop_summary.py`: summarizes two-population simulation
     results.
   - `analysis/run_kmeans_clustering.py`: runs KMeans clustering on oscillation
@@ -149,16 +81,17 @@ The script builds the shared C objects in `include/`, links against
 
 `simulations/main_monopop_4d.c`
 
-- Simulates connected homogeneous populations, such as `pop_F - pop_F` or
+- Simulates coupled homogeneous populations, such as `pop_F - pop_F` or
   `pop_S - pop_S`.
-- Varies `alpha`, `beta`, `Echelon`, and positive `omega`.
+- Varies `alpha`, `beta`, `rank` or echelon-like ordering, and positive
+  `omega`.
 
 ### Regime Sampling and MFOP Analysis
 
 `simulations/main_regime_samples.c`
 
-- Samples activity from each dynamical regime.
-- The current description assumes `nregimes = 7`.
+- Samples activity from each dynamical regime. The current setting assumes
+  `nregimes = 7`.
 - Related analysis:
   - `analysis/compute_coburst_probs.py`: computes co-burst probability maps.
   - `analysis/extract_burstprobs_twopop.py`: extracts burst probabilities using
@@ -166,8 +99,8 @@ The script builds the shared C objects in `include/`, links against
   - `analysis/determine_frequency_range.ipynb`: determines MFOP frequency
     ranges using a Cauchy-distribution fit.
   - `analysis/identify_mfop.py`: identifies MFOPs. Run
-    `determine_frequency_range.ipynb` first to set the frequency range for each
-    dynamical regime.
+    `analysis/determine_frequency_range.ipynb` first to set the frequency range
+    for each dynamical regime.
   - `analysis/convert_mua.py`: converts spike signals into MUA signals.
   - `analysis/compute_te.py`: computes transfer entropy.
 
@@ -175,7 +108,7 @@ The script builds the shared C objects in `include/`, links against
 
 `simulations/main_transmission.c`
 
-- Simulates delayed spike transmission while varying delays.
+- Simulates delayed spike transmission across different delay values.
 - Related setup and analysis:
   - `simulations/export_transmission_params.py`: exports delayed spike
     transmission simulation parameters.
@@ -201,6 +134,6 @@ The script builds the shared C objects in `include/`, links against
 
 ## Figures
 
-The `figures/main_figure*.py` scripts assemble manuscript-style figures from
-the processed outputs in `results/`. Generated figure assets are stored under
+The `figures/main_figure*.py` scripts assemble manuscript-style figures from the
+processed outputs in `results/`. Generated figure assets are stored under
 `figures/outputs/`.

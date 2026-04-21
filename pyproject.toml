@@ -5,6 +5,19 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "pytools"
 version = "0.1.0"
+dependencies = [
+    "frites",
+    "matplotlib",
+    "numba",
+    "numpy",
+    "pandas",
+    "PyYAML",
+    "scikit-learn",
+    "scipy",
+    "tdigest",
+    "tqdm",
+    "xarray",
+]
 
 [tool.setuptools]
 package-dir = {"" = "src"}
