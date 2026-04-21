@@ -1,0 +1,13 @@
+repos:
+  - repo: https://github.com/psf/black
+    rev: 26.3.1
+    hooks:
+      - id: black
+        files: ^(src/pytools|analysis|figures)/.*\.py$
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.11
+    hooks:
+      - id: ruff-check
+        args: [--fix, --select, F401]
+        files: ^(src/pytools|analysis|figures)/.*\.py$
