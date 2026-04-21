@@ -1,0 +1,130 @@
+time-kst: 2026-04-21T12:40
+global:
+  file_umap: ../results/twopop_output/umap_coord.nc
+  file_postdata: ../results/twopop_output/processed_results.nc
+  fdir_bprops: ../results/twopop_regime_samples/bprops
+  fdir_simul: ../results/twopop_regime_samples/data
+  file_repr: ../results/clustering/cluster_landmarks.pkl
+  file_cluster: ../results/clustering/cluster_id.nc
+locals:
+  echelon_fast:
+    key: chi
+    pop: F
+    lb_title: $chi^{Fast}_1$
+    vmin: 0
+    vmax: 0.4
+    cticks: &id001
+    - 0
+    - 0.2
+    - 0.4
+    s: 0.5
+    cmap: viridis
+    figsize: &id002
+    - 5
+    - 5
+    figure: echelon_fast
+  echelon_slow:
+    key: chi
+    pop: S
+    lb_title: $chi^{Slow}_1$
+    vmin: 0
+    vmax: 0.4
+    cticks: *id001
+    s: 0.5
+    cmap: viridis
+    figsize: *id002
+    figure: echelon_slow
+  freq_fast_1:
+    key: tlag_1st
+    pop: F
+    lb_title: $f^{Fast}_1$
+    vmin: 30
+    vmax: 70
+    cticks: &id003
+    - 30
+    - 50
+    - 70
+    s: 0.5
+    cmap: RdBu_r
+    figsize: *id002
+    figure: freq_fast_1
+  freq_fast_M:
+    key: tlag_large
+    pop: F
+    lb_title: $f^{Fast}_M$
+    vmin: 30
+    vmax: 70
+    cticks: *id003
+    s: 0.5
+    cmap: RdBu_r
+    figsize: *id002
+    figure: freq_fast_M
+  freq_slow_1:
+    key: tlag_1st
+    pop: S
+    lb_title: $f^{Slow}_1$
+    vmin: 30
+    vmax: 70
+    cticks: *id003
+    s: 0.5
+    cmap: RdBu_r
+    figsize: *id002
+    figure: freq_slow_1
+  freq_slow_M:
+    key: tlag_large
+    pop: S
+    lb_title: $f^{Slow}_M$
+    vmin: 30
+    vmax: 70
+    cticks: *id003
+    s: 0.5
+    cmap: RdBu_r
+    figsize: *id002
+    figure: freq_slow_M
+  landmark_prop_7:
+    figsize: &id004
+    - 2.35
+    - 9.5
+    cid: 7
+    nt: 0
+    vmins_spec: &id005
+    - 0.1
+    - 0.1
+    vmaxs_spec:
+    - 0.6
+    - 0.8
+    tl_spec: &id006
+    - 1
+    - 9
+    tl_burst: &id007
+    - 0
+    - 0.5
+    vmax_burst: 0.04
+    figure: landmark_prop_7
+  landmark_prop_5:
+    figsize: *id004
+    cid: 5
+    nt: 0
+    vmins_spec: *id005
+    vmaxs_spec:
+    - 0.8
+    - 0.4
+    tl_spec: *id006
+    tl_burst: *id007
+    vmax_burst: 0.04
+    figure: landmark_prop_5
+  landmark_prop_4:
+    figsize: *id004
+    cid: 4
+    nt: 0
+    vmins_spec: *id005
+    vmaxs_spec:
+    - 0.4
+    - 0.6
+    tl_spec: *id006
+    tl_burst: *id007
+    vmax_burst: 0.04
+    figure: landmark_prop_4
+  draw_cluster_umap:
+    figsize: *id002
+    figure: umap

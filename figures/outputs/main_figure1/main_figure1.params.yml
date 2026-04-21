@@ -1,0 +1,55 @@
+time-kst: 2026-04-21T11:48
+global: {}
+locals:
+  sample_fast:
+    figsize: &id001
+    - 14
+    - 2.5
+    pop_id: 0
+    xl:
+    - 1500
+    - 2000
+    fdata: null
+    figure: sample_fast
+  sample_slow:
+    figsize: *id001
+    pop_id: 1
+    xl:
+    - 1800
+    - 2300
+    fdata: null
+    figure: sample_slow
+  echelon_fast:
+    figsize: &id002
+    - 3.5
+    - 9.2
+    fpost: ../results/singlepop/pe_nu_mfast.nc
+    a: 3
+    d: 14142.14
+    pl:
+    - 0.051
+    - 0.234
+    figure: echelon_fast
+  echelon_slow:
+    figsize: *id002
+    fpost: ../results/singlepop/pe_nu_mslow.nc
+    a: 2.5
+    d: 15450.58
+    pl:
+    - 0.028
+    - 0.105
+    figure: echelon_slow
+  bmap_fast:
+    figsize: &id003
+    - 7.8
+    - 3.3
+    pop_id: 0
+    fdata: null
+    fburst: null
+    figure: bmap_fast
+  bmap_slow:
+    figsize: *id003
+    pop_id: 1
+    fdata: null
+    fburst: null
+    figure: bmap_slow

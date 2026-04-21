@@ -1,0 +1,257 @@
+import os
+import inspect
+import shutil
+import argparse
+from pathlib import Path
+import yaml
+import sys
+from functools import wraps
+import time
+from datetime import datetime
+import matplotlib
+
+matplotlib.use("Agg")
+
+
+"""
+Use "figure_renderer" decorator for each figure rendering functions
+"""
+
+
+ROOT_DIR = Path("./outputs/").resolve()
+OLD_ROOT_DIR = Path("./outputs/old/").resolve()
+CHECK_DIR = False
+SOURCE_COPIED = False
+RESET_OVERRIDE = None
+
+
+def _parse_cli_overrides():
+    global RESET_OVERRIDE
+
+    parser = argparse.ArgumentParser(add_help=False)
+    parser.add_argument(
+        "--fm-reset",
+        dest="fm_reset",
+        action="store_true",
+        help="Force figure_manager to reset output directories before rendering.",
+    )
+    parser.add_argument(
+        "--fm-no-reset",
+        dest="fm_reset",
+        action="store_false",
+        help="Force figure_manager to keep existing output directories.",
+    )
+    parser.set_defaults(fm_reset=None)
+
+    args, remaining = parser.parse_known_args(sys.argv[1:])
+    sys.argv = [sys.argv[0], *remaining]
+    RESET_OVERRIDE = args.fm_reset
+
+
+_parse_cli_overrides()
+
+
+class ParamTracker:
+    def __init__(self):
+        self.calls = []
+        self.global_params = {}
+
+    def track_global(self, var_name, value):
+        self.global_params[var_name] = value
+
+    def save(self, file_name):
+        grouped = {}
+        grouped["time-kst"] = time.strftime("%Y-%m-%dT%H:%M", time.localtime())
+        grouped["global"] = dict(self.global_params)
+        grouped["locals"] = {}
+        for c in self.calls:
+            f = c["func_name"]
+            grouped["locals"][f] = c["effective"]
+            grouped["locals"][f]["figure"] = c["figure"]
+
+        with open(file_name, "w") as f:
+            yaml.safe_dump(grouped, f, sort_keys=False)
+
+
+param_tracker = ParamTracker()
+
+
+def track_global(var_name, value):
+    param_tracker.track_global(var_name, value)
+
+
+def load_params_for_script(script_path: str):
+    yml = Path(script_path).with_suffix(".params.yml")
+    cfg = {"global": {}, "locals": {}}
+    if yml.exists():
+        raw = yaml.safe_load(yml.read_text())
+        cfg["global"] = raw.get("global", {}) or {}
+        cfg["locals"] = raw.get("locals", {}) or {}
+    return cfg
+
+
+def log_params():
+    """
+    Log function parameters
+    (1) default parameters (lowest priority)
+    (2) YAMl configuration (moderate priority)
+    (3) call-time kwargs (highest priority)
+    """
+
+    def decorator(fn):
+        sig = inspect.signature(fn)
+        fn_defaults = {
+            k: v.default
+            for k, v in sig.parameters.items()
+            if v.default is not inspect._empty
+        }
+
+        func_name = fn.__name__
+        module = sys.modules[fn.__module__]
+        script_file = Path(module.__file__)
+
+        @wraps(fn)
+        def wrapper(*args, **kwargs):
+
+            extras = {}
+            for k, v in kwargs.items():
+                if k not in sig.parameters.keys():
+                    extras[k] = v
+            for k in extras.keys():
+                kwargs.pop(k)
+            _func_name = extras.get("_func_label", func_name)
+
+            effective = dict(fn_defaults)
+
+            cfg = load_params_for_script(script_file)
+            yaml_locals = (cfg.get("locals", {}) or {}).get(_func_name, {}) or {}
+            for k, v in yaml_locals.items():
+                if k in sig.parameters:
+                    effective[k] = v
+
+            bound = sig.bind_partial(*args, **kwargs)
+            for k, v in bound.arguments.items():
+                if k in sig.parameters and k != "_func_label":
+                    effective[k] = v
+
+            final_kwargs = {}
+            for name in sig.parameters:
+                if name not in bound.arguments and name in effective:
+                    final_kwargs[name] = effective[name]
+
+            param_tracker.calls.append(
+                {"func_name": _func_name, "effective": effective}
+            )
+
+            return fn(*args, **kwargs, **final_kwargs, **extras)
+
+        return wrapper
+
+    return decorator
+
+
+def _ensure_dir(p: Path, reset: bool = False):
+    global CHECK_DIR
+    if CHECK_DIR:
+        return
+
+    if p.exists():
+        if reset:
+            shutil.rmtree(p)
+        else:
+            path_yml = list(p.glob("*.yml"))
+            if len(path_yml) == 0:
+                print("Remove empty directory:", p)
+                shutil.rmtree(p)
+            elif len(path_yml) > 1:
+                raise ValueError(f"Multiple yml files found in {p}: {path_yml}")
+            else:
+                raw = yaml.safe_load(path_yml[0].read_text())
+                time_str = raw.get("time-kst")
+                dt = datetime.fromisoformat(time_str)
+                dt_noew = datetime.now()
+                if dt.strftime("%y%m%d") == dt_noew.strftime("%y%m%d"):
+
+                    print("Remove directory created today:", p)
+                    shutil.rmtree(p)
+                else:
+                    new_dir = OLD_ROOT_DIR / f"{p.name}_{dt.strftime('%y%m%d')}"
+                    print(f"Move existing directory {p} to {new_dir}")
+                    shutil.move(p, new_dir)
+
+    p.mkdir(parents=True, exist_ok=True)
+    CHECK_DIR = True
+
+
+def figure_renderer(fig_name=None, reset=False, exts=(".png", ".svg", ".pdf")):
+    """fn should returns plt.figure object"""
+
+    def decorator(fn):
+        module = sys.modules[fn.__module__]
+        script_file = Path(module.__file__)
+        prefix = Path(script_file.stem)
+        out_dir = ROOT_DIR / prefix
+        out_name = Path(fig_name)
+        effective_reset = reset if RESET_OVERRIDE is None else RESET_OVERRIDE
+        _ensure_dir(out_dir, effective_reset)
+
+        global SOURCE_COPIED
+        if not SOURCE_COPIED:
+            new_name = "source_" + str(script_file.name)
+            shutil.copyfile(script_file, out_dir / new_name)
+            SOURCE_COPIED = True
+
+        @log_params()
+        @wraps(fn)
+        def wrapper(*args, **kwargs):
+
+            _out_name = kwargs.get("_func_label", None)
+            _transparent = pop_var(kwargs, "_transparent", False)
+            _dpi = pop_var(kwargs, "_dpi", 300)
+            if _out_name is None:
+                _out_name = out_name
+            else:
+                _out_name = Path(kwargs.pop("_func_label"))
+            fig = fn(*args, **kwargs)
+
+            print("Figure save into", out_dir / _out_name)
+            for ext in exts:
+                fig.savefig(
+                    out_dir / _out_name.with_suffix(ext),
+                    bbox_inches="tight",
+                    transparent=_transparent,
+                    dpi=_dpi,
+                )
+
+            param_tracker.calls[-1]["figure"] = str(_out_name)
+            param_tracker.save(out_dir / prefix.with_suffix(".params.yml"))
+
+        return wrapper
+
+    return decorator
+
+
+def save_fig(fig, filename_wo_ext):
+    prefix = Path(__file__).stem
+    fdir = os.path.join(ROOT_DIR, prefix)
+    if not os.path.exists(fdir):
+        print("Make directory: %s" % (fdir))
+        os.makedirs(fdir)
+    fig.savefig(os.path.join(fdir, f"{filename_wo_ext}.png"))
+    fig.savefig(os.path.join(fdir, f"{filename_wo_ext}.svg"))
+
+
+def pop_var(dict_var, key, default_val=None):
+    if key in dict_var:
+        return dict_var.pop(key)
+    else:
+        return default_val
+
+
+if __name__ == "__main__":
+
+    @log_params()
+    def test(a=2, b=3, c=None):
+        print("Running:", a, b)
+
+    test()

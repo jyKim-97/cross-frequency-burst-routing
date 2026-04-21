@@ -1,0 +1,31 @@
+time-kst: 2026-04-21T12:43
+global: {}
+locals:
+  draw_example:
+    figsize:
+    - 6
+    - 3.5
+    fdir_simul: ../results/twopop_regime_samples/data
+    cid: 7
+    nt: 93
+    tl:
+    - 2.2
+    - 4.2
+    th_q: 95
+    figure: mfop_example
+  draw_comap_sample:
+    figsize:
+    - 3.5
+    - 3.5
+    cid: 7
+    fdir_coburst: ../results/twopop_regime_samples/coburst
+    vmax: 0.02
+    cmap: turbo
+    figure: comap_sample
+  draw_comap_colorbar:
+    figsize:
+    - 0.2
+    - 3.5
+    vmax: 0.02
+    cmap: turbo
+    figure: comap_colorbar

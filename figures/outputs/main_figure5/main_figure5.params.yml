@@ -1,0 +1,67 @@
+time-kst: 2026-04-21T12:15
+global:
+  tl_colors:
+  - '#d45b0c'
+  - '#003f5c'
+  - '#a9a9a9'
+  arrow_colors:
+  - '#d92a27'
+  - '#045894'
+  - '#a9a9a9'
+  kappa_dir: ../results/spike_transmission/kappa
+locals:
+  draw_cbar:
+    figsize:
+    - 0.25
+    - 2
+    figure: delay_colorbar
+  show_single_spike_resp_410:
+    figsize: &id001
+    - 2.8
+    - 2.2
+    prob_spk_dir: ../results/spike_transmission/recv_probs
+    cid: 4
+    wid: 10
+    ntp: 0
+    s: 1.5
+    figure: show_single_spike_resp_410
+  show_single_spike_resp_415:
+    figsize: *id001
+    prob_spk_dir: ../results/spike_transmission/recv_probs
+    cid: 4
+    wid: 15
+    ntp: 0
+    s: 1.5
+    figure: show_single_spike_resp_415
+  show_tline_example_410:
+    figsize: &id002
+    - 2.8
+    - 7.8
+    kappa_dir: ../results/spike_transmission/kappa
+    cid: 4
+    wid: 10
+    err_method: std
+    err_std: 1.96
+    p_ranges: &id003
+    - 5
+    - 95
+    figure: show_tline_example_410
+  show_tline_example_415:
+    figsize: *id002
+    kappa_dir: ../results/spike_transmission/kappa
+    cid: 4
+    wid: 15
+    err_method: std
+    err_std: 1.96
+    p_ranges: *id003
+    figure: show_tline_example_415
+  draw_entire_tl:
+    figsize:
+    - 9.5
+    - 11
+    kappa_dir: ../results/spike_transmission/kappa
+    err_std: 1.96
+    p_ranges:
+    - 2.5
+    - 97.5
+    figure: draw_entire_irp

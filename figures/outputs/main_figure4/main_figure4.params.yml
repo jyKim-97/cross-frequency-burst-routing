@@ -1,0 +1,38 @@
+time-kst: 2026-04-21T11:59
+global:
+  te_colors:
+  - '#d45b0c'
+  - '#003f5c'
+  - '#a9a9a9'
+  te_dir: ../results/te/
+  c_rect: '#676767'
+locals:
+  draw_example_te_410:
+    figsize: &id001
+    - 2.8
+    - 11.8
+    cid: 4
+    wid: 10
+    p_ranges: &id002
+    - 2.5
+    - 97.5
+    te_dir: ../results/te/
+    figure: draw_example_te_410
+  draw_example_te_415:
+    figsize: *id001
+    cid: 4
+    wid: 15
+    p_ranges: *id002
+    te_dir: ../results/te/
+    figure: draw_example_te_415
+  draw_entire_irp:
+    figsize:
+    - 9.5
+    - 11
+    p_ranges: *id002
+    figure: entire_irp
+  irp_4dhist_reduce:
+    figsize:
+    - 2
+    - 4
+    figure: irp_4dhist_reduce
